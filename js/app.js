@@ -1535,26 +1535,27 @@ class SapoTracker {
 
     async loadTransactions() {
         try {
-            console.log('📥 Caricamento da localStorage...');
+            console.log('📥 Caricamento transazioni...');
             
-            const stored = localStorage.getItem('sapo_transactions');
-            if (stored) {
-                this.transactions = JSON.parse(stored).map(t => ({
+            // 💾 CARICA DA LOCALSTORAGE (GitHub Pages compatible)
+            const savedTransactions = localStorage.getItem('sapo_transactions');
+            
+            if (savedTransactions) {
+                this.transactions = JSON.parse(savedTransactions).map(t => ({
                     ...t,
                     data: new Date(t.data),
                     importo: parseFloat(t.importo)
                 })).sort((a, b) => b.data - a.data);
                 
-                console.log(`✅ Caricate ${this.transactions.length} transazioni da localStorage`);
+                console.log(`✅ Caricate ${this.transactions.length} transazioni`);
             } else {
-                console.log('ℹ️ Nessuna transazione in localStorage, inizializzo array vuoto');
+                console.log('ℹ️ Nessuna transazione esistente in localStorage');
                 this.transactions = [];
             }
         } catch (error) {
             console.error('❌ Errore caricamento localStorage:', error);
             this.transactions = [];
         }
-
     }
 
     async addTransaction() {
@@ -1594,27 +1595,23 @@ class SapoTracker {
 
             console.log('💾 Salvataggio transazione:', transaction);
 
-            // MODALITÀ GITHUB PAGES - USA LOCALSTORAGE
-            console.log('💾 Salvataggio in localStorage...');
+            // 💾 SALVA IN LOCALSTORAGE (GitHub Pages compatible)
+            transaction.data = new Date(transaction.data);
+            transaction.id = Date.now().toString();
+            
+            // Aggiungi alla lista transazioni locale
             this.transactions.unshift(transaction);
+            
+            // Salva in localStorage
             localStorage.setItem('sapo_transactions', JSON.stringify(this.transactions));
-            const response = { ok: true }; // Simula response
-
-            if (response.ok) {
-                console.log('✅ LocalStorage OK, aggiornando UI...');
-                
-                // Ferma immediatamente l'animazione se attiva
-                try {
-                    this.stopChartAnimation();
-                } catch (e) {
-                    console.warn('⚠️ Errore stopChartAnimation:', e);
-                }
-                
-                // Aggiungi localmente PRIMA (per UI reattiva)
-                transaction.data = new Date(transaction.data);
-                transaction.id = Date.now().toString();
-                this.transactions.unshift(transaction);
-                console.log('✅ Transazione aggiunta localmente');
+            console.log('💾 Transazione salvata in localStorage');
+            
+            // Ferma immediatamente l'animazione se attiva
+            try {
+                this.stopChartAnimation();
+            } catch (e) {
+                console.warn('⚠️ Errore stopChartAnimation:', e);
+            }
                 
                 // 📊 AGGIORNA TUTTO IL DASHBOARD (CRITICO!)
                 console.log('📊 Aggiornando dashboard completo...');
@@ -1699,12 +1696,9 @@ class SapoTracker {
                 
                 this.showNotification('✅ Transazione aggiunta con successo!');
                 console.log('✅ Transazione salvata completamente');
-            } else {
-                throw new Error(`Errore server: ${response.status}`);
-            }
         } catch (error) {
-            console.error('❌ Errore completo in addTransaction:', error);
-            this.showNotification('❌ Errore nel salvataggio', 'error');
+            console.error('❌ Errore completo in addTransaction localStorage:', error);
+            this.showNotification('❌ Errore nel salvataggio localStorage', 'error');
             // Non bloccare l'interfaccia in caso di errore
             try {
                 closeAddModal();
@@ -3614,24 +3608,22 @@ class SapoTracker {
         console.log('⚡ Spesa rapida:', transaction);
 
         try {
-            // SPESE RAPIDE - MODALITÀ GITHUB PAGES  
-            console.log('💾 Spesa rapida - salvataggio localStorage...');
+            // 💾 SALVA IN LOCALSTORAGE (GitHub Pages compatible)
+            transaction.data = new Date(transaction.data);
+            transaction.id = Date.now().toString();
+            
+            // Aggiungi alla lista transazioni locale
             this.transactions.unshift(transaction);
+            
+            // Salva in localStorage
             localStorage.setItem('sapo_transactions', JSON.stringify(this.transactions));
-            const response = { ok: true }; // Simula response per compatibilità
-
-            if (response.ok) {
-                // Chiudi modal
-                this.closeQuickExpenseModal();
-                
-                // Ferma animazione grafico
-                this.stopChartAnimation();
-                
-                // Aggiungi localmente per UI reattiva
-                transaction.data = new Date(transaction.data);
-                transaction.id = Date.now().toString();
-                this.transactions.unshift(transaction);
-                console.log('✅ [SPESE RAPIDE] Transazione aggiunta localmente');
+            console.log('💾 [SPESE RAPIDE] Transazione salvata in localStorage');
+            
+            // Chiudi modal
+            this.closeQuickExpenseModal();
+            
+            // Ferma animazione grafico
+            this.stopChartAnimation();
                 
                 // Aggiorna importo medio se l'importo è diverso dal default
                 if (Math.abs(amount - this.quickExpenseAmounts[category]) > 0.1) {
@@ -3672,13 +3664,9 @@ class SapoTracker {
                 
                 this.showNotification(`✅ ${category} €${amount.toFixed(2)} aggiunto!`);
                 console.log('✅ Spesa rapida salvata');
-                
-            } else {
-                throw new Error('Errore nel salvataggio');
-            }
         } catch (error) {
-            console.error('❌ Errore spesa rapida:', error);
-            this.showNotification('❌ Errore nel salvataggio', 'error');
+            console.error('❌ Errore spesa rapida localStorage:', error);
+            this.showNotification('❌ Errore nel salvataggio localStorage', 'error');
         }
     }
 
