@@ -14,12 +14,27 @@ class SapoTracker {
     }
 
     async initializeSchemas() {
-        // 🧹 PULIZIA LOCALSTORAGE - Rimuovi dati precedenti
-        console.log('🧹 Pulizia localStorage...');
-        localStorage.removeItem('quickExpenseAmounts');
-        localStorage.removeItem('sapoTracker_data'); // Altri dati che potrebbero esistere
-        localStorage.removeItem('transactions_cache');
-        console.log('✅ localStorage pulito');
+        // 💾 SISTEMA PERSISTENZA INFINITA - Pulizia selettiva intelligente
+        console.log('💾 Inizializzazione sistema persistenza infinita...');
+        
+        // 🧹 PULIZIA SELETTIVA - Solo dati non critici obsoleti
+        localStorage.removeItem('sapoTracker_data'); // Dati legacy non utilizzati
+        localStorage.removeItem('transactions_cache'); // Cache obsoleta non utilizzata
+        console.log('🧹 Cache obsolete rimosse (preservando dati utente)');
+        
+        // 🔒 PRESERVA DATI CRITICI UTENTE
+        const existingTransactions = localStorage.getItem('sapo_transactions');
+        const existingQuickAmounts = localStorage.getItem('quickExpenseAmounts');
+        
+        if (existingTransactions) {
+            const count = JSON.parse(existingTransactions).length;
+            console.log(`📚 Dati transazioni preservati: ${count} transazioni`);
+        }
+        
+        if (existingQuickAmounts) {
+            const amounts = JSON.parse(existingQuickAmounts);
+            console.log(`🎯 Importi spese rapide preservati:`, amounts);
+        }
         
         // Verifica se la tabella investimenti esiste, altrimenti usa TableSchemaUpdate
         try {
@@ -1533,6 +1548,74 @@ class SapoTracker {
         console.log('✅ updateCategories completato - Valore finale:', select.value);
     }
 
+    // 🔄 SINCRONIZZAZIONE PERFETTA per sistema infinito
+    ensureDataSync() {
+        try {
+            const savedData = localStorage.getItem('sapo_transactions');
+            if (savedData) {
+                const savedTransactions = JSON.parse(savedData);
+                
+                // Verifica consistenza
+                if (this.transactions.length !== savedTransactions.length) {
+                    console.log(`🔄 SYNC: Rilevata inconsistenza dati - memoria:${this.transactions.length} vs storage:${savedTransactions.length}`);
+                    
+                    // Riallinea usando localStorage come fonte di verità
+                    this.transactions = savedTransactions.map(t => ({
+                        ...t,
+                        data: new Date(t.data),
+                        importo: typeof t.importo === 'number' ? t.importo : parseFloat(t.importo || 0)
+                    })).sort((a, b) => b.data - a.data);
+                    
+                    console.log(`✅ SYNC: Dati riallineati - ora ${this.transactions.length} transazioni`);
+                }
+            }
+        } catch (error) {
+            console.error('❌ ERRORE SYNC:', error);
+        }
+    }
+
+    // 💾 BACKUP AUTOMATICO per sicurezza dati infiniti
+    createAutoBackup() {
+        try {
+            const timestamp = new Date().toISOString().split('T')[0];
+            const backupKey = `sapo_backup_${timestamp}`;
+            
+            // Crea backup completo
+            const fullBackup = {
+                transactions: this.transactions,
+                investments: this.investments,
+                financialInvestments: this.financialInvestments,
+                materialInvestments: this.materialInvestments,
+                timestamp: new Date().toISOString(),
+                version: '2.0'
+            };
+            
+            localStorage.setItem(backupKey, JSON.stringify(fullBackup));
+            console.log(`💾 BACKUP AUTOMATICO creato: ${backupKey}`);
+            
+            // Mantieni solo ultimi 7 backup per non riempire storage
+            this.cleanOldBackups();
+            
+        } catch (error) {
+            console.error('❌ ERRORE BACKUP:', error);
+        }
+    }
+
+    cleanOldBackups() {
+        try {
+            const backupKeys = Object.keys(localStorage).filter(key => key.startsWith('sapo_backup_'));
+            if (backupKeys.length > 7) {
+                // Ordina per data e rimuovi i più vecchi
+                backupKeys.sort().slice(0, -7).forEach(key => {
+                    localStorage.removeItem(key);
+                    console.log(`🗑️ Backup vecchio rimosso: ${key}`);
+                });
+            }
+        } catch (error) {
+            console.error('❌ ERRORE PULIZIA BACKUP:', error);
+        }
+    }
+
     async loadTransactions() {
         try {
             console.log('📥 Caricamento transazioni...');
@@ -1605,6 +1688,20 @@ class SapoTracker {
             // Salva in localStorage
             localStorage.setItem('sapo_transactions', JSON.stringify(this.transactions));
             console.log('💾 Transazione salvata in localStorage');
+            
+            // 💾 BACKUP AUTOMATICO per sicurezza infinita
+            if (this.transactions.length % 10 === 0) { // Backup ogni 10 transazioni
+                this.createAutoBackup();
+            }
+            
+            // 🔍 VERIFICA IMMEDIATA DOPO SALVATAGGIO
+            const verificaData = localStorage.getItem('sapo_transactions');
+            const verificaTransactions = JSON.parse(verificaData);
+            console.log('🔍 VERIFICA POST-SALVATAGGIO:', {
+                transazioniInMemoria: this.transactions.length,
+                transazioniInLocalStorage: verificaTransactions.length,
+                ultimaTransazione: verificaTransactions[0]
+            });
             
             // Ferma immediatamente l'animazione se attiva
             try {
@@ -1711,6 +1808,9 @@ class SapoTracker {
     updateDashboard() {
         console.log('🔄 === updateDashboard() INIZIATO ===');
         
+        // 🔄 SINCRONIZZAZIONE PERFETTA prima di calcolare
+        this.ensureDataSync();
+        
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
@@ -1726,8 +1826,43 @@ class SapoTracker {
         });
 
         // Calcola totali con debug dettagliato
-        const transactionBalance = this.transactions.reduce((sum, t) => 
-            sum + (t.tipo === 'entrata' ? t.importo : -t.importo), 0);
+        console.log('🔍 DEBUG CALCOLO SALDO - Analizzando ogni transazione:');
+        console.log('🔍 ARRAY COMPLETO TRANSAZIONI:', this.transactions);
+        this.transactions.forEach((t, index) => {
+            console.log(`   ${index + 1}. ${t.tipo}: €${t.importo} (${t.descrizione}) [ID: ${t.id}]`);
+        });
+        
+        // 🚀 CALCOLO OTTIMIZZATO PER SISTEMA INFINITO
+        let transactionBalance = 0;
+        let debugCount = 0;
+        
+        for (const t of this.transactions) {
+            // Assicura che importo sia sempre numero
+            const importo = typeof t.importo === 'number' ? t.importo : parseFloat(t.importo || 0);
+            const amount = t.tipo === 'entrata' ? importo : -importo;
+            
+            transactionBalance += amount;
+            
+            // Debug solo per prime 5 transazioni (performance)
+            if (debugCount < 5) {
+                console.log(`🔍 TRANSAZIONE ${debugCount + 1}:`, {
+                    tipo: t.tipo,
+                    importo: importo,
+                    importoType: typeof importo,
+                    contributoSaldo: amount
+                });
+                debugCount++;
+            }
+        }
+        
+        if (this.transactions.length > 5) {
+            console.log(`📊 ... e altre ${this.transactions.length - 5} transazioni elaborate`);
+        }
+        
+        console.log(`💰 SALDO TRANSAZIONI TOTALE: €${transactionBalance.toFixed(2)}`);
+        
+        // Mantieni la variabile per compatibilità
+        // const transactionBalance = calcoloSopra;
         const financialInvestmentValue = this.financialInvestments.reduce((sum, i) => sum + i.investment_value, 0);
         
         // Per i progetti materiali, calcola investimenti netti (totale investito - rientri)
@@ -3618,6 +3753,20 @@ class SapoTracker {
             // Salva in localStorage
             localStorage.setItem('sapo_transactions', JSON.stringify(this.transactions));
             console.log('💾 [SPESE RAPIDE] Transazione salvata in localStorage');
+            
+            // 💾 BACKUP AUTOMATICO per sicurezza infinita (spese rapide)
+            if (this.transactions.length % 10 === 0) { // Backup ogni 10 transazioni
+                this.createAutoBackup();
+            }
+            
+            // 🔍 VERIFICA IMMEDIATA DOPO SALVATAGGIO SPESE RAPIDE
+            const verificaData = localStorage.getItem('sapo_transactions');
+            const verificaTransactions = JSON.parse(verificaData);
+            console.log('🔍 VERIFICA POST-SALVATAGGIO SPESE RAPIDE:', {
+                transazioniInMemoria: this.transactions.length,
+                transazioniInLocalStorage: verificaTransactions.length,
+                ultimaTransazione: verificaTransactions[0]
+            });
             
             // Chiudi modal
             this.closeQuickExpenseModal();
