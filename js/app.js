@@ -1594,14 +1594,14 @@ class SapoTracker {
 
             console.log('💾 Salvataggio transazione:', transaction);
 
-            const response = await fetch('tables/transazioni', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(transaction)
-            });
+            // MODALITÀ GITHUB PAGES - USA LOCALSTORAGE
+            console.log('💾 Salvataggio in localStorage...');
+            this.transactions.unshift(transaction);
+            localStorage.setItem('sapo_transactions', JSON.stringify(this.transactions));
+            const response = { ok: true }; // Simula response
 
             if (response.ok) {
-                console.log('✅ Response OK, aggiornando UI...');
+                console.log('✅ LocalStorage OK, aggiornando UI...');
                 
                 // Ferma immediatamente l'animazione se attiva
                 try {
