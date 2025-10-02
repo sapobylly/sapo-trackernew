@@ -3614,11 +3614,11 @@ class SapoTracker {
         console.log('⚡ Spesa rapida:', transaction);
 
         try {
-            const response = await fetch('tables/transazioni', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(transaction)
-            });
+            // SPESE RAPIDE - MODALITÀ GITHUB PAGES  
+            console.log('💾 Spesa rapida - salvataggio localStorage...');
+            this.transactions.unshift(transaction);
+            localStorage.setItem('sapo_transactions', JSON.stringify(this.transactions));
+            const response = { ok: true }; // Simula response per compatibilità
 
             if (response.ok) {
                 // Chiudi modal
