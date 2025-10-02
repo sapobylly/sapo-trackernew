@@ -1535,26 +1535,26 @@ class SapoTracker {
 
     async loadTransactions() {
         try {
-            console.log('📥 Caricamento transazioni...');
-            const response = await fetch('tables/transazioni?limit=1000');
+            console.log('📥 Caricamento da localStorage...');
             
-            if (response.ok) {
-                const data = await response.json();
-                this.transactions = (data.data || []).map(t => ({
+            const stored = localStorage.getItem('sapo_transactions');
+            if (stored) {
+                this.transactions = JSON.parse(stored).map(t => ({
                     ...t,
                     data: new Date(t.data),
                     importo: parseFloat(t.importo)
                 })).sort((a, b) => b.data - a.data);
                 
-                console.log(`✅ Caricate ${this.transactions.length} transazioni`);
+                console.log(`✅ Caricate ${this.transactions.length} transazioni da localStorage`);
             } else {
-                console.log('ℹ️ Nessuna transazione esistente');
+                console.log('ℹ️ Nessuna transazione in localStorage, inizializzo array vuoto');
                 this.transactions = [];
             }
         } catch (error) {
-            console.error('❌ Errore caricamento:', error);
+            console.error('❌ Errore caricamento localStorage:', error);
             this.transactions = [];
         }
+
     }
 
     async addTransaction() {
