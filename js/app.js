@@ -1808,8 +1808,8 @@ class SapoTracker {
     updateDashboard() {
         console.log('🔄 === updateDashboard() INIZIATO ===');
         
-        // 🔄 SINCRONIZZAZIONE PERFETTA prima di calcolare
-        this.ensureDataSync();
+        // 🔄 SINCRONIZZAZIONE DISABILITATA temporaneamente per debug
+        // this.ensureDataSync(); // DISABILITATA - causava perdita dati spese rapide
         
         const now = new Date();
         const currentMonth = now.getMonth();
